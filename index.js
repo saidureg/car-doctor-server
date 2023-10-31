@@ -66,7 +66,7 @@ async function run() {
     // auth related api
     app.post("/jwt", async (req, res) => {
       const user = req.body;
-      const token = jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET, {
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: "1h",
       });
       console.log(token);
@@ -101,9 +101,12 @@ async function run() {
 
     app.get("/bookings", logger, verifyToken, async (req, res) => {
       console.log(req.query.email);
-      let query = {};
       // console.log("tok tok token", req.cookies.token);
       console.log("user in the valid token", req.user);
+      if (req.query.email !== req.user.email) {
+        return res.status(403).send({ message: "Forbidden access" });
+      }
+      let query = {};
       if (req.query?.email) {
         query = { email: req.query.email };
       }
