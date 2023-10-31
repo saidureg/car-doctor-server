@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5000;
@@ -9,8 +10,14 @@ const port = process.env.PORT || 5000;
 require("dotenv").config();
 
 // middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  })
+);
 app.use(express.json());
+app.use(cookieParser());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.24f3vqg.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -32,10 +39,19 @@ async function run() {
     const bookingCollection = client.db("carDoctor").collection("booking");
 
     // auth related api
-    app.post("/login", async (req, res) => {
+    app.post("/jwt", async (req, res) => {
       const user = req.body;
-      const token = jwt.sign({ user }, "secret_key", { expiresIn: "1h" });
+      const token = jwt.sign({ user }, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
       console.log(token);
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: false, // set to true if your using https
+          // sameSite: "none",
+        })
+        .send({ success: true });
     });
 
     // services related api
@@ -61,6 +77,7 @@ async function run() {
     app.get("/bookings", async (req, res) => {
       console.log(req.query.email);
       let query = {};
+      console.log("tok tok token", req.cookies.token);
       if (req.query?.email) {
         query = { email: req.query.email };
       }
